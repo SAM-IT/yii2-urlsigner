@@ -88,7 +88,7 @@ class UrlSigner extends Component
         }
 
 
-        if ($params[0] === '0') {
+        if ($params[0] === 0) {
             unset($params[0]);
         }
 
