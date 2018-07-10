@@ -1,0 +1,36 @@
+{
+    "name": "sam-it/yii2-urlsigner",
+    "description": "Secure URL signing and validation for the Yii2 framework",
+    "type": "yii2-extension",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Sam Mousa",
+            "email": "sam@mousa.nl"
+        }
+    ],
+    "require": {
+        "yiisoft/yii2": "^2.0.13"
+    },
+    "autoload": {
+        "psr-4": {
+            "SamIT\\Yii2\\UrlSigner\\" : "src/"
+        }
+    },
+    "repositories": [
+        {
+            "type": "composer",
+            "url": "https://asset-packagist.org"
+        }
+    ],
+    "require-dev": {
+        "codeception/codeception": "^2.4",
+        "friendsofphp/php-cs-fixer": "^2.9"
+    },
+    "scripts": {
+        "test": "vendor/bin/codecept build && vendor/bin/codecept run --no-interaction",
+        "test-with-cc": "vendor/bin/codecept build && vendor/bin/codecept run --no-interaction --coverage-xml",
+        "lint": "vendor/bin/php-cs-fixer fix --dry-run --verbose --diff",
+        "lint-fix": "vendor/bin/php-cs-fixer fix --verbose"
+    }
+}
