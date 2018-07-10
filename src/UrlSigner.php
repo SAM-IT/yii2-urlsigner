@@ -88,7 +88,7 @@ class UrlSigner extends Component
         }
 
 
-        if ($params[0] == '0') {
+        if ($params[0] === '0') {
             unset($params[0]);
         }
 
@@ -139,6 +139,6 @@ class UrlSigner extends Component
         }
 
         // Check expiration date.
-        return $signedParams[$this->expirationParam] > time();
+        return $signedParams[$this->expirationParam] > \time();
     }
 }
