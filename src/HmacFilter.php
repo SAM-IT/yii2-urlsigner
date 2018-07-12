@@ -7,6 +7,7 @@ namespace SamIT\Yii2\UrlSigner;
 
 use SamIT\Yii2\UrlSigner\UrlSigner;
 use yii\base\ActionFilter;
+use yii\base\InvalidConfigException;
 use yii\web\ForbiddenHttpException;
 use yii\web\Request;
 
@@ -20,6 +21,15 @@ class HmacFilter extends ActionFilter
      * @var UrlSigner
      */
     public $signer;
+
+    public function init()
+    {
+        parent::init();
+        if (!$this->signer instanceof UrlSigner) {
+            throw new InvalidConfigException('Signer is required');
+        }
+    }
+
 
     /**
      * @param \yii\base\Action $action
