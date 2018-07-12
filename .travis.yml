@@ -10,10 +10,10 @@ matrix:
   include:
     - php: '7.1'
       env: COVERAGE=false TEST_COMMAND="composer lint"
-
+before_install :
+  - phpenv config-rm xdebug.ini
 install:
   - travis_retry composer install
-
 script:
   - $TEST_COMMAND
 after_script:

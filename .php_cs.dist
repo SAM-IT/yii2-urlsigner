@@ -6,6 +6,9 @@ $finder = \PhpCsFixer\Finder::create()
         __DIR__.'/tests',
     ])
     ->notPath('/fixtures/')
+    ->notPath('/_generated/')
+    ->notPath('/_generated/')
+    ->notPath('/_output/')
 ;
 
 return \PhpCsFixer\Config::create()

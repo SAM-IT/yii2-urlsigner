@@ -29,7 +29,7 @@
     },
     "scripts": {
         "test": "vendor/bin/codecept build && vendor/bin/codecept run --no-interaction",
-        "test-with-cc": "vendor/bin/codecept build && vendor/bin/codecept run --no-interaction --coverage-xml",
+        "test-with-cc": "vendor/bin/codecept build && phpdbg -qrr vendor/bin/codecept run --no-interaction --coverage-xml",
         "lint": "vendor/bin/php-cs-fixer fix --dry-run --verbose --diff",
         "lint-fix": "vendor/bin/php-cs-fixer fix --verbose"
     }
