@@ -28,9 +28,9 @@ class UrlSigner extends Component
 
     /**
      * Note that expiration dates cannot be disabled. If you really need to you can set a longer duration for the links.
-     * @var string The default interval for link validity (default: 1 week)
+     * @var \DateInterval The default interval for link validity (default: 1 week)
      */
-    public $defaultExpirationInterval = 'P7D';
+    private $_defaultExpirationInterval;
 
     /**
      * @var string
@@ -40,17 +40,26 @@ class UrlSigner extends Component
     public function init(): void
     {
         parent::init();
-        if (!isset($this->secret)) {
-            throw new InvalidConfigException('Secret is a required configration param');
+        $this->setDefaultExpirationInterval('P7D');
+        if (empty($this->secret)
+            || empty($this->hmacParam)
+            || empty($this->paramsParam)
+            || empty($this->expirationParam)
+        ) {
+            throw new InvalidConfigException('The following configuration params are required: secret, hmacParam, paramsParam and expirationParam');
         }
+
+
     }
 
+    public function setDefaultExpirationInterval(string $interval): void
+    {
+        $this->_defaultExpirationInterval = new \DateInterval($interval);
+
+    }
     /**
      * Calculates the HMAC for a URL.
-     * @param array $params A Yii2 route array, the first element is the route the rest are params.
-     * @throws \Exception
-     * @return string The HMAC
-     */
+     **/
     public function calculateHMAC(
         array $params,
         string $route
@@ -60,7 +69,14 @@ class UrlSigner extends Component
         }
 
         \ksort($params);
-        return \substr(\hash_hmac('sha256', \trim($route, '/') . '|' .  \implode('#', $params), $this->secret), 1, 16);
+
+        $hash = \hash_hmac('sha256',
+            \trim($route, '/') . '|' . \implode('#', $params),
+            $this->secret,
+            true
+        );
+
+        return $this->urlEncode($hash);
     }
 
     /**
@@ -80,33 +96,73 @@ class UrlSigner extends Component
             throw new \RuntimeException("HMAC param is already present");
         }
 
-        $params = \array_keys($queryParams);
         $route = $queryParams[0];
 
         if (\strncmp($route, '/', 1) !== 0) {
             throw new \RuntimeException("Route must be absolute (start with /)");
         }
 
-
-        if ($params[0] === 0) {
-            unset($params[0]);
-        }
-
-        if (!isset($expiration)) {
-            $expiration = (new \DateTime())->add(new \DateInterval($this->defaultExpirationInterval));
-        }
-
-        if (!empty($this->expirationParam)) {
-            $queryParams[$this->expirationParam] = $expiration->getTimestamp();
-            $params[] = $this->expirationParam;
-        }
-
-        \sort($params);
+        $this->addExpiration($queryParams, $expiration);
         if ($allowAddition) {
-            $queryParams[$this->paramsParam] = \strtr(StringHelper::base64UrlEncode(\implode(',', $params)), ['=' => '']);
+            $this->addParamKeys($queryParams);
         }
 
         $queryParams[$this->hmacParam] = $this->calculateHMAC($queryParams, $route);
+    }
+
+    /**
+     * Adds the expiration param if needed.
+     */
+    private function addExpiration(array &$params, ?\DateTimeInterface $expiration = null): void
+    {
+        if (!empty($this->expirationParam)) {
+            if (!isset($expiration)) {
+                $expiration = (new \DateTime())->add($this->_defaultExpirationInterval);
+            }
+            $params[$this->expirationParam] = $expiration->getTimestamp();
+        }
+    }
+
+    private function checkExpiration(array $params): bool
+    {
+        // Check expiration date.
+        return $params[$this->expirationParam] > \time();
+    }
+
+    /**
+     * Adds the keys of all params to the param array so it is included for signing.
+     * @param array $params
+     */
+    private function addParamKeys(array &$params): void
+    {
+        $keys = \array_keys($params);
+        if ($keys[0] === 0) {
+            unset($keys[0]);
+        }
+        $params[$this->paramsParam] = implode(',', $keys);
+    }
+
+    /**
+     * Extracts the signed params from an array of params.
+     * @param array $params
+     * @return array
+     */
+    private function getSignedParams(array $params): array
+    {
+        if (empty($params[$this->paramsParam])) {
+            // HMAC itself is never signed.
+            unset($params[$this->hmacParam]);
+            return $params;
+        }
+
+        $signedParams = [];
+        $signedParams[$this->paramsParam] = $params[$this->paramsParam];
+
+        foreach(\explode(',', $params[$this->paramsParam]) as $signedParam) {
+            $signedParams[$signedParam] = $params[$signedParam] ?? null;
+        }
+
+        return $signedParams;
     }
 
     /**
@@ -123,22 +179,19 @@ class UrlSigner extends Component
            return false;
         }
         $hmac = $params[$this->hmacParam];
-        $signedParams = [];
-        if (!empty($params[$this->paramsParam])) {
-            $signedParams[$this->paramsParam] = $params[$this->paramsParam];
-            foreach(\explode(',', \base64_decode($params[$this->paramsParam], true)) as $signedParam) {
-                $signedParams[$signedParam] = $params[$signedParam] ?? null;
-            }
-        } else {
-            $signedParams = $params;
-            unset($signedParams[$this->hmacParam]);
-        }
+
+        $signedParams = $this->getSignedParams($params);
+
         $calculated = $this->calculateHMAC($signedParams, $route);
         if (!\hash_equals($calculated, $hmac)) {
             return false;
         }
 
-        // Check expiration date.
-        return $signedParams[$this->expirationParam] > \time();
+        return $this->checkExpiration($params);
+    }
+
+    private function urlEncode(string $bytes): string
+    {
+        return StringHelper::base64UrlEncode($bytes);
     }
 }
