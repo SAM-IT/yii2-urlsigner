@@ -139,7 +139,7 @@ class UrlSigner extends Component
         if ($keys[0] === 0) {
             unset($keys[0]);
         }
-        $params[$this->paramsParam] = implode(',', $keys);
+        $params[$this->paramsParam] = \implode(',', $keys);
     }
 
     /**

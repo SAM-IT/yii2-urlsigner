@@ -22,7 +22,7 @@ class HmacFilter extends ActionFilter
      */
     public $signer;
 
-    public function init()
+    public function init(): void
     {
         parent::init();
         if (!$this->signer instanceof UrlSigner) {
