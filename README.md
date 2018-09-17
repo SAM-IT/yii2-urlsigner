@@ -65,7 +65,7 @@ class DoResetAction {
             'hmacFilter' => [
             'class' => HmacFilter::class,
             'signer' => $this->controller->module->get('urlSigner'),
-        ]
+        ];
 
     }
     public function run(
