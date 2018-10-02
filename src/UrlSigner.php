@@ -126,7 +126,7 @@ class UrlSigner extends Component
     private function checkExpiration(array $params): bool
     {
         // Check expiration date.
-        return $params[$this->expirationParam] > \time();
+        return !isset($params[$this->expirationParam]) || $params[$this->expirationParam] > \time();
     }
 
     /**

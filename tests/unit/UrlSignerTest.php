@@ -122,4 +122,40 @@ class UrlSignerTest extends \Codeception\Test\Unit
         $this->expectException(RuntimeException::class);
         $signer->signParams($params);
     }
+
+    public function testMissingExpiration(): void
+    {
+        $signer = new SamIT\Yii2\UrlSigner\UrlSigner([
+            'secret' => 'test123'
+        ]);
+
+        $params = [
+            '/controller/action',
+            'test' => 'abc'
+        ];
+        $signer->signParams($params);
+
+        unset($params[$signer->expirationParam]);
+        $this->assertFalse($signer->verify($params, '/controller/action'));
+    }
+
+    public function testNoExpiration(): void
+    {
+        $signer = new SamIT\Yii2\UrlSigner\UrlSigner([
+            'secret' => 'test123'
+        ]);
+        $expirationParam = $signer->expirationParam;
+        $signer->expirationParam = null;
+
+        $params = [
+            '/controller/action',
+            'test' => 'abc'
+        ];
+        $signer->signParams($params);
+        $this->assertNotContains($expirationParam, $params);
+
+        $this->assertTrue($signer->verify($params, '/controller/action'));
+        $signer->expirationParam = $expirationParam;
+        $this->assertTrue($signer->verify($params, '/controller/action'));
+    }
 }
