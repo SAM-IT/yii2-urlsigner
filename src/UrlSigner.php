@@ -192,6 +192,6 @@ class UrlSigner extends Component
 
     private function urlEncode(string $bytes): string
     {
-        return StringHelper::base64UrlEncode($bytes);
+        return \trim(StringHelper::base64UrlEncode($bytes), '=');
     }
 }
