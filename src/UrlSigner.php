@@ -33,6 +33,12 @@ class UrlSigner extends Component
     private $_defaultExpirationInterval;
 
     /**
+     * Stores the current timestamp, primarily used for testing.
+     * @var int
+     */
+    private $_currentTimestamp;
+
+    /**
      * @var string
      */
     public $secret;
@@ -57,8 +63,13 @@ class UrlSigner extends Component
     public function setDefaultExpirationInterval(string $interval): void
     {
         $this->_defaultExpirationInterval = new \DateInterval($interval);
-
     }
+
+    public function setCurrentTimestamp(?int $time): void
+    {
+        $this->_currentTimestamp = $time;
+    }
+
     /**
      * Calculates the HMAC for a URL.
      **/
@@ -119,16 +130,20 @@ class UrlSigner extends Component
     {
         if (!empty($this->expirationParam)) {
             if (!isset($expiration)) {
-                $expiration = (new \DateTime())->add($this->_defaultExpirationInterval);
+                $expiration = (new \DateTime('@' . $this->time()))->add($this->_defaultExpirationInterval);
             }
             $params[$this->expirationParam] = $expiration->getTimestamp();
         }
     }
 
+    private function time(): int
+    {
+        return $this->_currentTimestamp ?? \time();
+    }
     private function checkExpiration(array $params): bool
     {
         // Check expiration date.
-        return !isset($params[$this->expirationParam]) || $params[$this->expirationParam] > time();
+        return !isset($params[$this->expirationParam]) || $params[$this->expirationParam] > $this->time();
     }
 
     /**
