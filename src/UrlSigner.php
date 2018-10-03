@@ -40,7 +40,9 @@ class UrlSigner extends Component
     public function init(): void
     {
         parent::init();
-        $this->setDefaultExpirationInterval('P7D');
+        if (!isset($this->_defaultExpirationInterval)) {
+            $this->setDefaultExpirationInterval('P7D');
+        }
         if (empty($this->secret)
             || empty($this->hmacParam)
             || empty($this->paramsParam)

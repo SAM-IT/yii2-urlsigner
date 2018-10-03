@@ -158,4 +158,18 @@ class UrlSignerTest extends \Codeception\Test\Unit
         $signer->expirationParam = $expirationParam;
         $this->assertTrue($signer->verify($params, '/controller/action'));
     }
+
+    public function testDefaultExpiration(): void
+    {
+        $signer = new SamIT\Yii2\UrlSigner\UrlSigner([
+            'secret' => 'test123',
+            'defaultExpirationInterval' => 'P14D'
+        ]);
+        $params = [
+            '/controller/action'
+        ];
+        $signer->signParams($params);
+        $this->assertContains('expires', $params);
+        $this->assertGreaterThan(\time() + 14 * 24 * 3600 - 100, $params['expires']);
+    }
 }
