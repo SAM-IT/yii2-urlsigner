@@ -26,7 +26,6 @@ return \PhpCsFixer\Config::create()
         'declare_strict_types' => true,
         'linebreak_after_opening_tag' => true,
         'modernize_types_casting' => true,
-        'native_function_invocation' => true,
         'no_php4_constructor' => true,
         'ordered_imports' => true,
         'php_unit_strict' => true,
