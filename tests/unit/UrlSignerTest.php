@@ -1,17 +1,20 @@
 <?php
 declare(strict_types=1);
 
+use SamIT\Yii2\UrlSigner\InvalidHmacException;
+use SamIT\Yii2\UrlSigner\MissingHmacException;
+use SamIT\Yii2\UrlSigner\UrlSigner;
 class UrlSignerTest extends \Codeception\Test\Unit
 {
     public function testInvalidConfig(): void
     {
         $this->expectException(\yii\base\InvalidConfigException::class);
-        $signer = new SamIT\Yii2\UrlSigner\UrlSigner();
+        $signer = new UrlSigner();
 
     }
     public function testSimple(): void
     {
-        $signer = new SamIT\Yii2\UrlSigner\UrlSigner([
+        $signer = new UrlSigner([
             'secret' => 'test123'
         ]);
 
@@ -26,12 +29,12 @@ class UrlSignerTest extends \Codeception\Test\Unit
         $this->assertArrayNotHasKey($signer->paramsParam, $params);
         $route = $params[0];
         unset($params[0]);
-        $this->assertTrue($signer->verify($params, $route));
+        $signer->verify($params, $route);
     }
 
     public function testAdditions(): void
     {
-        $signer = new SamIT\Yii2\UrlSigner\UrlSigner([
+        $signer = new UrlSigner([
             'secret' => 'test123'
         ]);
 
@@ -46,14 +49,14 @@ class UrlSignerTest extends \Codeception\Test\Unit
         $this->assertArrayHasKey($signer->paramsParam, $params);
         $route = $params[0];
         unset($params[0]);
-        $this->assertTrue($signer->verify($params, $route));
+        $signer->verify($params, $route);
         $params['extra'] = 'cool';
-        $this->assertTrue($signer->verify($params, $route));
+        $signer->verify($params, $route);
     }
 
     public function testDoubleSign(): void
     {
-        $signer = new SamIT\Yii2\UrlSigner\UrlSigner([
+        $signer = new UrlSigner([
             'secret' => 'test123'
         ]);
 
@@ -69,7 +72,7 @@ class UrlSignerTest extends \Codeception\Test\Unit
 
     public function testMissingHmac(): void
     {
-        $signer = new SamIT\Yii2\UrlSigner\UrlSigner([
+        $signer = new UrlSigner([
             'secret' => 'test123'
         ]);
         $params = [
@@ -83,14 +86,15 @@ class UrlSignerTest extends \Codeception\Test\Unit
         $this->assertArrayNotHasKey($signer->paramsParam, $params);
         $route = $params[0];
         unset($params[0]);
-        $this->assertTrue($signer->verify($params, $route));
+        $signer->verify($params, $route);
         unset($params[$signer->hmacParam]);
-        $this->assertFalse($signer->verify($params, $route));
+        $this->expectException(MissingHmacException::class);
+        $signer->verify($params, $route);
     }
 
     public function testModification(): void
     {
-        $signer = new SamIT\Yii2\UrlSigner\UrlSigner([
+        $signer = new UrlSigner([
             'secret' => 'test123'
         ]);
         $params = [
@@ -106,12 +110,13 @@ class UrlSignerTest extends \Codeception\Test\Unit
         unset($params[0]);
 
         $params['test'] = 'abd';
-        $this->assertFalse($signer->verify($params, $route));
+        $this->expectException(InvalidHmacException::class);
+        $signer->verify($params, $route);
     }
 
     public function testRelativeRoute(): void
     {
-        $signer = new SamIT\Yii2\UrlSigner\UrlSigner([
+        $signer = new UrlSigner([
             'secret' => 'test123'
         ]);
 
@@ -125,7 +130,7 @@ class UrlSignerTest extends \Codeception\Test\Unit
 
     public function testMissingExpiration(): void
     {
-        $signer = new SamIT\Yii2\UrlSigner\UrlSigner([
+        $signer = new UrlSigner([
             'secret' => 'test123'
         ]);
 
@@ -136,12 +141,13 @@ class UrlSignerTest extends \Codeception\Test\Unit
         $signer->signParams($params);
 
         unset($params[$signer->expirationParam]);
-        $this->assertFalse($signer->verify($params, '/controller/action'));
+        $this->expectException(InvalidHmacException::class);
+        $signer->verify($params, '/controller/action');
     }
 
     public function testNoExpiration(): void
     {
-        $signer = new SamIT\Yii2\UrlSigner\UrlSigner([
+        $signer = new UrlSigner([
             'secret' => 'test123'
         ]);
         $expirationParam = $signer->expirationParam;
@@ -154,14 +160,14 @@ class UrlSignerTest extends \Codeception\Test\Unit
         $signer->signParams($params);
         $this->assertNotContains($expirationParam, $params);
 
-        $this->assertTrue($signer->verify($params, '/controller/action'));
+        $signer->verify($params, '/controller/action');
         $signer->expirationParam = $expirationParam;
-        $this->assertTrue($signer->verify($params, '/controller/action'));
+        $signer->verify($params, '/controller/action');
     }
 
     public function testDefaultExpiration(): void
     {
-        $signer = new SamIT\Yii2\UrlSigner\UrlSigner([
+        $signer = new UrlSigner([
             'secret' => 'test123',
             'defaultExpirationInterval' => 'P14D'
         ]);
@@ -175,7 +181,7 @@ class UrlSignerTest extends \Codeception\Test\Unit
 
     public function testTimeMocking(): void
     {
-        $signer = new SamIT\Yii2\UrlSigner\UrlSigner([
+        $signer = new UrlSigner([
             'secret' => 'test123',
             'defaultExpirationInterval' => 'PT01S'
         ]);
@@ -186,10 +192,11 @@ class UrlSignerTest extends \Codeception\Test\Unit
         $this->assertContains('expires', $params);
         $this->assertSame(\time() + 1, $params['expires']);
         $signer->setCurrentTimestamp(\time() - 10);
-        $this->assertTrue($signer->verify($params, '/controller/action'));
+        $signer->verify($params, '/controller/action');
         $signer->setCurrentTimestamp(null);
-        $this->assertTrue($signer->verify($params, '/controller/action'));
+        $signer->verify($params, '/controller/action');
         $signer->setCurrentTimestamp(\time() + 5);
+        $this->expectException(\SamIT\Yii2\UrlSigner\ExpiredLinkException::class);
         $this->assertFalse($signer->verify($params, '/controller/action'));
     }
 }

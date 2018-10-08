@@ -33,14 +33,8 @@ class HmacFilterTest extends \Codeception\Test\Unit
 
     public function testVerifyFalse(): void
     {
-        $mock = $this->make(SamIT\Yii2\UrlSigner\UrlSigner::class, [
-            'verify' => \Codeception\Stub\Expected::once(function() {
-                return false;
-            })
-        ]);
-
         $filter = new \SamIT\Yii2\UrlSigner\HmacFilter([
-            'signer' => $mock
+            'signer' => new SamIT\Yii2\UrlSigner\UrlSigner(['secret' => 'test123'])
         ]);
 
 

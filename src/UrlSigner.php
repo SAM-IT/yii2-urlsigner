@@ -140,10 +140,15 @@ class UrlSigner extends Component
     {
         return $this->_currentTimestamp ?? \time();
     }
-    private function checkExpiration(array $params): bool
+
+    private function checkExpiration(array $params): void
     {
         // Check expiration date.
-        return !isset($params[$this->expirationParam]) || $params[$this->expirationParam] > $this->time();
+        if (isset($params[$this->expirationParam])
+            && $params[$this->expirationParam] <= $this->time()
+        ) {
+            throw new ExpiredLinkException();
+        }
     }
 
     /**
@@ -190,10 +195,10 @@ class UrlSigner extends Component
      * @throws \Exception
      * @return bool
      */
-    public function verify(array $params, string $route):bool
+    public function verify(array $params, string $route):void
     {
         if (!isset($params[$this->hmacParam])) {
-           return false;
+            throw new MissingHmacException();
         }
         $hmac = $params[$this->hmacParam];
 
@@ -201,10 +206,10 @@ class UrlSigner extends Component
 
         $calculated = $this->calculateHMAC($signedParams, $route);
         if (!\hash_equals($calculated, $hmac)) {
-            return false;
+            throw new InvalidHmacException();
         }
 
-        return $this->checkExpiration($params);
+        $this->checkExpiration($params);
     }
 
     private function urlEncode(string $bytes): string
