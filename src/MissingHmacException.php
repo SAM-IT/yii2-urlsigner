@@ -9,6 +9,6 @@ class MissingHmacException extends UrlSignerException
 {
     public function __construct(int $code = 0, \Exception $previous = null)
     {
-        parent::__construct('This security code for this URL is missing', $code, $previous);
+        parent::__construct('The security code for this URL is missing', $code, $previous);
     }
 }
