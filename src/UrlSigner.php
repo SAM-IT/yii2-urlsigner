@@ -106,13 +106,13 @@ class UrlSigner extends Component
         ?\DateTimeInterface $expiration = null
     ): void {
         if (isset($queryParams[$this->hmacParam])) {
-            throw new \RuntimeException("HMAC param is already present");
+            throw new \RuntimeException(\Yii::t('sam-it.urlsigner', "HMAC param is already present"));
         }
 
         $route = $queryParams[0];
 
         if (\strncmp($route, '/', 1) !== 0) {
-            throw new \RuntimeException("Route must be absolute (start with /)");
+            throw new \RuntimeException(\Yii::t('sam-it.urlsigner', "Route must be absolute (start with /)"));
         }
 
         $this->addExpiration($queryParams, $expiration);
