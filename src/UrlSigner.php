@@ -42,7 +42,7 @@ class UrlSigner extends Component
     public function init(): void
     {
         parent::init();
-        if (!isset($this->_defaultExpirationInterval)) {
+        if (! isset($this->_defaultExpirationInterval)) {
             $this->setDefaultExpirationInterval('P7D');
         }
         if (empty($this->secret)
@@ -131,8 +131,8 @@ class UrlSigner extends Component
      */
     private function addExpiration(array &$params, ?\DateTimeInterface $expiration = null): array
     {
-        if (!empty($this->expirationParam)) {
-            if (!isset($expiration)) {
+        if (! empty($this->expirationParam)) {
+            if (! isset($expiration)) {
                 $expiration = (new \DateTime('@' . $this->time()))->add($this->_defaultExpirationInterval);
             }
             return [$this->expirationParam => $expiration->getTimestamp()];
@@ -180,7 +180,7 @@ class UrlSigner extends Component
     {
         $paramNames = $params[$this->paramsParam] ?? null;
 
-        if (empty($paramNames) || !is_string($paramNames)) {
+        if (empty($paramNames) || ! is_string($paramNames)) {
             // HMAC itself is never signed.
             unset($params[$this->hmacParam]);
             return $params;
@@ -204,7 +204,7 @@ class UrlSigner extends Component
      */
     public function verify(array $params, string $route): void
     {
-        if (!isset($params[$this->hmacParam]) || !is_string($params[$this->hmacParam])) {
+        if (! isset($params[$this->hmacParam]) || ! is_string($params[$this->hmacParam])) {
             throw new MissingHmacException();
         }
         $hmac = $params[$this->hmacParam];
@@ -212,7 +212,7 @@ class UrlSigner extends Component
         $signedParams = $this->getSignedParams($params);
 
         $calculated = $this->calculateHMAC($signedParams, $route);
-        if (!\hash_equals($calculated, $hmac)) {
+        if (! \hash_equals($calculated, $hmac)) {
             throw new InvalidHmacException();
         }
 

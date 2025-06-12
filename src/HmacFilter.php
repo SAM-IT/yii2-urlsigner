@@ -22,7 +22,7 @@ class HmacFilter extends ActionFilter
     public function beforeAction($action): bool
     {
         $signer = $this->signer;
-        if (!isset($signer)) {
+        if (! isset($signer)) {
             throw new InvalidConfigException('Signer is required');
         }
 
@@ -30,7 +30,7 @@ class HmacFilter extends ActionFilter
          * We obtain the request this way because we do not want to store a reference to any objects with state.
          */
         $request = $action->controller->request;
-        if (!$request instanceof Request) {
+        if (! $request instanceof Request) {
             throw new InvalidConfigException('Invalid request object');
         }
         $signer->verify($request->queryParams, $action->controller->route);
