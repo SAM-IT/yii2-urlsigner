@@ -24,10 +24,6 @@ return static function (ECSConfig $ecsConfig): void {
     $ecsConfig->paths([
         __DIR__ . '/src', __DIR__ . '/tests', __DIR__ . '/ecs.php'
     ]);
-    $ecsConfig->skip([
-        __DIR__ . '/src/helpers/Mdi.php'
-    ]);
-
     // A. full sets
     $ecsConfig->sets([SetList::PSR_12, SetList::SPACES]);
 
@@ -43,7 +39,6 @@ return static function (ECSConfig $ecsConfig): void {
     $ecsConfig->rule(NoEmptyPhpdocFixer::class);
     $ecsConfig->rule(NoUnusedImportsFixer::class);
     $ecsConfig->rule(DeclareStrictTypesFixer::class);
-    //    $ecsConfig->rule(PhpdocAlignFixer::class);
 
     $ecsConfig->ruleWithConfiguration(ForbiddenFunctionsSniff::class, [
         'forbiddenFunctions' => [
@@ -51,19 +46,4 @@ return static function (ECSConfig $ecsConfig): void {
             'var_dump' => null,
         ]
     ]);
-    $ecsConfig->skip([
-        NotOperatorWithSuccessorSpaceFixer::class,
-        __DIR__ . '/src/modules/SurveyjsBackend/src/helpers/DutchPostalCodes.php',
-        __DIR__ . '/tests/_support/_generated/*',
-        ForbiddenFunctionsSniff::class => [
-            'tests/**',
-            'console/**'
-        ]
-    ]);
-
-    //    $ecsConfig->skip([
-    //        FinalClassFixer::class => [
-    //            'tests/**'
-    //        ]
-    //    ]);
 };
