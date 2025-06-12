@@ -30,14 +30,13 @@
         }
     ],
     "require-dev": {
-        "codeception/codeception": "^5",
-        "codeception/module-yii2": "^2.0",
         "phpstan/phpstan": "^2.1",
-        "symplify/easy-coding-standard": "^12.5"
+        "symplify/easy-coding-standard": "^12.5",
+        "phpunit/phpunit": "^12.2"
     },
     "scripts": {
         "test": "vendor/bin/phpunit",
-        "test-with-cc": "vendor/bin/unit --coverage-html html/",
+        "test-with-cc": "vendor/bin/phpunit --coverage-html html/",
         "lint": "vendor/bin/ecs",
         "lint-fix": "vendor/bin/ecs --fix "
     },
