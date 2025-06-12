@@ -1,13 +1,12 @@
 <?php
-declare(strict_types=1);
 
+declare(strict_types=1);
 
 namespace SamIT\Yii2\UrlSigner;
 
-
-class MissingHmacException extends UrlSignerException
+final class MissingHmacException extends UrlSignerException
 {
-    public function __construct(int $code = 0, \Exception $previous = null)
+    public function __construct(int $code = 0, null|\Exception $previous = null)
     {
         parent::__construct(\Yii::t('sam-it.urlsigner', 'The security code for this URL is missing'), $code, $previous);
     }

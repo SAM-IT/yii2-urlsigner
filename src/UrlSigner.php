@@ -1,10 +1,10 @@
 <?php
-declare(strict_types=1);
 
+declare(strict_types=1);
 
 namespace SamIT\Yii2\UrlSigner;
 
-
+use DateInterval;
 use yii\base\Component;
 use yii\base\InvalidConfigException;
 use yii\helpers\StringHelper;
@@ -14,34 +14,30 @@ class UrlSigner extends Component
     /**
      * @var string The name of the URL param for the HMAC
      */
-    public $hmacParam = 'hmac';
+    public string $hmacParam = 'hmac';
 
     /**
      * @var string The name of the URL param for the parameters
      */
-    public $paramsParam = 'params';
+    public string $paramsParam = 'params';
 
     /**
-     * @var string The name of the URL param for the expiration date time
+     * @var null|string The name of the URL param for the expiration date time
      */
-    public $expirationParam = 'expires';
+    public null|string $expirationParam = 'expires';
 
     /**
      * Note that expiration dates cannot be disabled. If you really need to you can set a longer duration for the links.
      * @var \DateInterval The default interval for link validity (default: 1 week)
      */
-    private $_defaultExpirationInterval;
+    private DateInterval $_defaultExpirationInterval;
 
     /**
      * Stores the current timestamp, primarily used for testing.
-     * @var int
      */
-    private $_currentTimestamp;
+    private null|int $_currentTimestamp;
 
-    /**
-     * @var string
-     */
-    public $secret;
+    public string $secret;
 
     public function init(): void
     {
@@ -57,7 +53,6 @@ class UrlSigner extends Component
             throw new InvalidConfigException('The following configuration params are required: secret, hmacParam, paramsParam and expirationParam');
         }
 
-
     }
 
     public function setDefaultExpirationInterval(string $interval): void
@@ -72,6 +67,7 @@ class UrlSigner extends Component
 
     /**
      * Calculates the HMAC for a URL.
+     * @param array<mixed> $params
      **/
     public function calculateHMAC(
         array $params,
@@ -83,7 +79,8 @@ class UrlSigner extends Component
 
         \ksort($params);
 
-        $hash = \hash_hmac('sha256',
+        $hash = \hash_hmac(
+            'sha256',
             \trim($route, '/') . '|' . \implode('#', $params),
             $this->secret,
             true
@@ -95,14 +92,14 @@ class UrlSigner extends Component
     /**
      * This adds an HMAC to a list of query params.
      * If
-     * @param array $queryParams List of query parameters
+     * @param array{0: string, ...} $queryParams List of query parameters
+     * @param-out array{0: string, ...}&non-empty-array<string, string> $queryParams
      * @param bool $allowAddition Whether to allow extra parameters to be added.
      * @throws \Exception
-     * @return void
      */
     public function signParams(
         array &$queryParams,
-        $allowAddition = true,
+        bool $allowAddition = true,
         ?\DateTimeInterface $expiration = null
     ): void {
         if (isset($queryParams[$this->hmacParam])) {
@@ -115,7 +112,11 @@ class UrlSigner extends Component
             throw new \RuntimeException(\Yii::t('sam-it.urlsigner', "Route must be absolute (start with /)"));
         }
 
-        $this->addExpiration($queryParams, $expiration);
+        $queryParams = [
+            ...$queryParams,
+            ...$this->addExpiration($queryParams, $expiration)
+        ];
+
         if ($allowAddition) {
             $this->addParamKeys($queryParams);
         }
@@ -125,15 +126,18 @@ class UrlSigner extends Component
 
     /**
      * Adds the expiration param if needed.
+     * @param array<mixed> $params
+     * @return array<string, int>
      */
-    private function addExpiration(array &$params, ?\DateTimeInterface $expiration = null): void
+    private function addExpiration(array &$params, ?\DateTimeInterface $expiration = null): array
     {
         if (!empty($this->expirationParam)) {
             if (!isset($expiration)) {
                 $expiration = (new \DateTime('@' . $this->time()))->add($this->_defaultExpirationInterval);
             }
-            $params[$this->expirationParam] = $expiration->getTimestamp();
+            return [$this->expirationParam => $expiration->getTimestamp()];
         }
+        return [];
     }
 
     private function time(): int
@@ -141,6 +145,9 @@ class UrlSigner extends Component
         return $this->_currentTimestamp ?? \time();
     }
 
+    /**
+     * @param array<mixed> $params
+     */
     private function checkExpiration(array $params): void
     {
         // Check expiration date.
@@ -153,7 +160,7 @@ class UrlSigner extends Component
 
     /**
      * Adds the keys of all params to the param array so it is included for signing.
-     * @param array $params
+     * @param array<mixed> $params
      */
     private function addParamKeys(array &$params): void
     {
@@ -166,21 +173,23 @@ class UrlSigner extends Component
 
     /**
      * Extracts the signed params from an array of params.
-     * @param array $params
-     * @return array
+     * @param array<string, mixed> $params
+     * @return array<string, mixed>
      */
     private function getSignedParams(array $params): array
     {
-        if (empty($params[$this->paramsParam])) {
+        $paramNames = $params[$this->paramsParam] ?? null;
+
+        if (empty($paramNames) || !is_string($paramNames)) {
             // HMAC itself is never signed.
             unset($params[$this->hmacParam]);
             return $params;
         }
 
         $signedParams = [];
-        $signedParams[$this->paramsParam] = $params[$this->paramsParam];
+        $signedParams[$this->paramsParam] = $paramNames;
 
-        foreach(\explode(',', $params[$this->paramsParam]) as $signedParam) {
+        foreach (\explode(',', $paramNames) as $signedParam) {
             $signedParams[$signedParam] = $params[$signedParam] ?? null;
         }
 
@@ -191,13 +200,11 @@ class UrlSigner extends Component
      * Verifies the params for a specific route.
      * Checks that the HMAC is present and valid.
      * Checks that the HMAC is not expired.
-     * @param array $params
-     * @throws \Exception
-     * @return bool
+     * @param array<mixed> $params
      */
-    public function verify(array $params, string $route):void
+    public function verify(array $params, string $route): void
     {
-        if (!isset($params[$this->hmacParam])) {
+        if (!isset($params[$this->hmacParam]) || !is_string($params[$this->hmacParam])) {
             throw new MissingHmacException();
         }
         $hmac = $params[$this->hmacParam];

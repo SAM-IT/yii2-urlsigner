@@ -10,11 +10,17 @@
         }
     ],
     "require": {
+        "php": ">= 8.3",
         "yiisoft/yii2": "^2.0.13"
     },
     "autoload": {
         "psr-4": {
             "SamIT\\Yii2\\UrlSigner\\" : "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "SamIT\\Yii2\\UrlSigner\\Tests\\" : "tests/"
         }
     },
     "repositories": [
@@ -24,13 +30,20 @@
         }
     ],
     "require-dev": {
-        "codeception/codeception": "^3.1",
-        "friendsofphp/php-cs-fixer": "^2.9"
+        "codeception/codeception": "^5",
+        "codeception/module-yii2": "^2.0",
+        "phpstan/phpstan": "^2.1",
+        "symplify/easy-coding-standard": "^12.5"
     },
     "scripts": {
         "test": "vendor/bin/codecept build && vendor/bin/codecept run --no-interaction",
         "test-with-cc": "vendor/bin/codecept build && phpdbg -qrr vendor/bin/codecept run --no-interaction --coverage-xml --coverage-html",
-        "lint": "vendor/bin/php-cs-fixer fix --dry-run --verbose --diff",
-        "lint-fix": "vendor/bin/php-cs-fixer fix --verbose"
+        "lint": "vendor/bin/ecs",
+        "lint-fix": "vendor/bin/ecs --fix "
+    },
+    "config": {
+        "allow-plugins": {
+            "yiisoft/yii2-composer": true
+        }
     }
 }

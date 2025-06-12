@@ -1,10 +1,17 @@
 <?php
+
 declare(strict_types=1);
 
+namespace SamIT\Yii2\UrlSigner\Tests;
+
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\TestCase;
 use SamIT\Yii2\UrlSigner\InvalidHmacException;
 use SamIT\Yii2\UrlSigner\MissingHmacException;
 use SamIT\Yii2\UrlSigner\UrlSigner;
-class UrlSignerTest extends \Codeception\Test\Unit
+
+#[CoversClass(UrlSigner::class)]
+class UrlSignerTest extends TestCase
 {
     public function testInvalidConfig(): void
     {
@@ -12,6 +19,7 @@ class UrlSignerTest extends \Codeception\Test\Unit
         $signer = new UrlSigner();
 
     }
+
     public function testSimple(): void
     {
         $signer = new UrlSigner([
@@ -197,6 +205,6 @@ class UrlSignerTest extends \Codeception\Test\Unit
         $signer->verify($params, '/controller/action');
         $signer->setCurrentTimestamp(\time() + 5);
         $this->expectException(\SamIT\Yii2\UrlSigner\ExpiredLinkException::class);
-        $this->assertFalse($signer->verify($params, '/controller/action'));
+        $signer->verify($params, '/controller/action');
     }
 }
