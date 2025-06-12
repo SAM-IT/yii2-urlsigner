@@ -1,6 +1,6 @@
-composer.phar
-/vendor/
-composer.lock
-.idea
-tests/_output
-/tests/_support
+/vendor
+/composer.lock
+/.idea
+/.ecs-cache
+/.phpunit.cache
+/html
