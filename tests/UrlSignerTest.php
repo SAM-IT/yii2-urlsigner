@@ -28,8 +28,9 @@ class UrlSignerTest extends TestCase
             'secret' => 'test123'
         ]);
 
+        $route = '/url';
         $params = [
-            '/url',
+            $route,
             'test' => 'abc'
         ];
         $signer->signParams($params, false);
@@ -37,7 +38,7 @@ class UrlSignerTest extends TestCase
         $this->assertArrayHasKey($signer->hmacParam, $params);
         $this->assertArrayHasKey($signer->expirationParam, $params);
         $this->assertArrayNotHasKey($signer->paramsParam, $params);
-        $route = $params[0];
+
         unset($params[0]);
         $signer->verify($params, $route);
     }
@@ -48,8 +49,9 @@ class UrlSignerTest extends TestCase
             'secret' => 'test123'
         ]);
 
+        $route = '/url';
         $params = [
-            '/url',
+            $route,
             'test' => 'abc'
         ];
         $signer->signParams($params, true);
@@ -57,7 +59,6 @@ class UrlSignerTest extends TestCase
         $this->assertArrayHasKey($signer->hmacParam, $params);
         $this->assertArrayHasKey($signer->expirationParam, $params);
         $this->assertArrayHasKey($signer->paramsParam, $params);
-        $route = $params[0];
         unset($params[0]);
         $signer->verify($params, $route);
         $params['extra'] = 'cool';
@@ -85,8 +86,9 @@ class UrlSignerTest extends TestCase
         $signer = new UrlSigner([
             'secret' => 'test123'
         ]);
+        $route = '/url';
         $params = [
-            '/url',
+            $route,
             'test' => 'abc'
         ];
         $signer->signParams($params, false);
@@ -94,7 +96,6 @@ class UrlSignerTest extends TestCase
         $this->assertArrayHasKey($signer->hmacParam, $params);
         $this->assertArrayHasKey($signer->expirationParam, $params);
         $this->assertArrayNotHasKey($signer->paramsParam, $params);
-        $route = $params[0];
         unset($params[0]);
         $signer->verify($params, $route);
         unset($params[$signer->hmacParam]);
@@ -107,8 +108,9 @@ class UrlSignerTest extends TestCase
         $signer = new UrlSigner([
             'secret' => 'test123'
         ]);
+        $route = '/url';
         $params = [
-            '/url',
+            $route,
             'test' => 'abc'
         ];
         $signer->signParams($params, false);
@@ -116,7 +118,6 @@ class UrlSignerTest extends TestCase
         $this->assertArrayHasKey($signer->hmacParam, $params);
         $this->assertArrayHasKey($signer->expirationParam, $params);
         $this->assertArrayNotHasKey($signer->paramsParam, $params);
-        $route = $params[0];
         unset($params[0]);
 
         $params['test'] = 'abd';

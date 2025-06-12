@@ -91,7 +91,7 @@ class UrlSigner extends Component
 
     /**
      * @param array<string, mixed> $params
-     * @return array{0: string, ...}
+     * @return array<string|0, mixed>
      */
     public function sign(string $route, array $params, bool $allowAddition = true, null|\DateTimeInterface $expiration = null): array
     {
@@ -104,6 +104,7 @@ class UrlSigner extends Component
         }
 
         $result = [
+            $route,
             ...$params,
             ...$this->addExpiration($expiration)
         ];
@@ -120,8 +121,8 @@ class UrlSigner extends Component
 
     /**
      * This adds an HMAC to a list of query params.
-     * @param array{0: string, ...} $queryParams List of query parameters
-     * @param-out array{0: string, ...} $queryParams
+     * @param array<0|string, mixed> $queryParams List of query parameters
+     * @param-out array<0|string, mixed> $queryParams
      * @param bool $allowAddition Whether to allow extra parameters to be added.
      * @throws \Exception
      * @deprecated Use ->sign instead
@@ -131,14 +132,13 @@ class UrlSigner extends Component
         bool $allowAddition = true,
         ?\DateTimeInterface $expiration = null
     ): void {
-
         $route = $queryParams[0];
+        if (! is_string($route)) {
+            throw new \InvalidArgumentException(\Yii::t('sam-it.urlsigner', "Route must be a string"));
+        }
         unset($queryParams[0]);
         $newParams = $this->sign($route, $queryParams, $allowAddition, $expiration);
-        $queryParams = [
-            $route,
-            ...$newParams
-        ];
+        $queryParams = $newParams;
     }
 
     /**
@@ -175,7 +175,6 @@ class UrlSigner extends Component
     /**
      * Adds the keys of all params to the param array so it is included for signing.
      * @param array<mixed> $params
-     * @return array<string, string>
      */
     private function addParamKeys(array $params): string
     {
