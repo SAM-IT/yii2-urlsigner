@@ -4,4 +4,3 @@ composer.lock
 .idea
 tests/_output
 /tests/_support
-/.php_cs.cache

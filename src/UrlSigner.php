@@ -90,51 +90,65 @@ class UrlSigner extends Component
     }
 
     /**
+     * @param array<string, mixed> $params
+     * @return array{0: string, ...}
+     */
+    public function sign(string $route, array $params, bool $allowAddition = true, null|\DateTimeInterface $expiration = null): array
+    {
+        if (isset($params[$this->hmacParam])) {
+            throw new \RuntimeException(\Yii::t('sam-it.urlsigner', "HMAC param is already present"));
+        }
+
+        if (\strncmp($route, '/', 1) !== 0) {
+            throw new \RuntimeException(\Yii::t('sam-it.urlsigner', "Route must be absolute (start with /)"));
+        }
+
+        $result = [
+            ...$params,
+            ...$this->addExpiration($expiration)
+        ];
+        if (isset($this->expirationParam)) {
+            $expiration ??= (new \DateTime('@' . $this->time()))->add($this->_defaultExpirationInterval);
+            $result[$this->expirationParam] = $expiration->getTimestamp();
+        }
+        if ($allowAddition) {
+            $result[$this->paramsParam] = $this->addParamKeys($result);
+        };
+        $result[$this->hmacParam] = $this->calculateHMAC($result, $route);
+        return $result;
+    }
+
+    /**
      * This adds an HMAC to a list of query params.
-     * If
      * @param array{0: string, ...} $queryParams List of query parameters
-     * @param-out array{0: string, ...}&non-empty-array<string, string> $queryParams
+     * @param-out array{0: string, ...} $queryParams
      * @param bool $allowAddition Whether to allow extra parameters to be added.
      * @throws \Exception
+     * @deprecated Use ->sign instead
      */
     public function signParams(
         array &$queryParams,
         bool $allowAddition = true,
         ?\DateTimeInterface $expiration = null
     ): void {
-        if (isset($queryParams[$this->hmacParam])) {
-            throw new \RuntimeException(\Yii::t('sam-it.urlsigner', "HMAC param is already present"));
-        }
 
         $route = $queryParams[0];
-
-        if (\strncmp($route, '/', 1) !== 0) {
-            throw new \RuntimeException(\Yii::t('sam-it.urlsigner', "Route must be absolute (start with /)"));
-        }
-
+        unset($queryParams[0]);
+        $newParams = $this->sign($route, $queryParams, $allowAddition, $expiration);
         $queryParams = [
-            ...$queryParams,
-            ...$this->addExpiration($queryParams, $expiration)
+            $route,
+            ...$newParams
         ];
-
-        if ($allowAddition) {
-            $this->addParamKeys($queryParams);
-        }
-
-        $queryParams[$this->hmacParam] = $this->calculateHMAC($queryParams, $route);
     }
 
     /**
      * Adds the expiration param if needed.
-     * @param array<mixed> $params
      * @return array<string, int>
      */
-    private function addExpiration(array &$params, ?\DateTimeInterface $expiration = null): array
+    private function addExpiration(?\DateTimeInterface $expiration = null): array
     {
         if (! empty($this->expirationParam)) {
-            if (! isset($expiration)) {
-                $expiration = (new \DateTime('@' . $this->time()))->add($this->_defaultExpirationInterval);
-            }
+            $expiration ??= (new \DateTime('@' . $this->time()))->add($this->_defaultExpirationInterval);
             return [$this->expirationParam => $expiration->getTimestamp()];
         }
         return [];
@@ -161,14 +175,15 @@ class UrlSigner extends Component
     /**
      * Adds the keys of all params to the param array so it is included for signing.
      * @param array<mixed> $params
+     * @return array<string, string>
      */
-    private function addParamKeys(array &$params): void
+    private function addParamKeys(array $params): string
     {
         $keys = \array_keys($params);
         if ($keys[0] === 0) {
             unset($keys[0]);
         }
-        $params[$this->paramsParam] = \implode(',', $keys);
+        return \implode(',', $keys);
     }
 
     /**

@@ -36,8 +36,8 @@
         "symplify/easy-coding-standard": "^12.5"
     },
     "scripts": {
-        "test": "vendor/bin/codecept build && vendor/bin/codecept run --no-interaction",
-        "test-with-cc": "vendor/bin/codecept build && phpdbg -qrr vendor/bin/codecept run --no-interaction --coverage-xml --coverage-html",
+        "test": "vendor/bin/phpunit",
+        "test-with-cc": "vendor/bin/unit --coverage-html html/",
         "lint": "vendor/bin/ecs",
         "lint-fix": "vendor/bin/ecs --fix "
     },
