@@ -6,16 +6,18 @@ namespace SamIT\Yii2\UrlSigner\Tests;
 
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
+use RuntimeException;
 use SamIT\Yii2\UrlSigner\InvalidHmacException;
 use SamIT\Yii2\UrlSigner\MissingHmacException;
 use SamIT\Yii2\UrlSigner\UrlSigner;
+use yii\base\InvalidConfigException;
 
 #[CoversClass(UrlSigner::class)]
 class UrlSignerTest extends TestCase
 {
     public function testInvalidConfig(): void
     {
-        $this->expectException(\yii\base\InvalidConfigException::class);
+        $this->expectException(InvalidConfigException::class);
         $signer = new UrlSigner();
 
     }
@@ -73,7 +75,7 @@ class UrlSignerTest extends TestCase
             'test' => 'abc'
         ];
         $signer->signParams($params, true);
-        $this->expectException(RuntimeException::class);
+        $this->expectException(\RuntimeException::class);
         $signer->signParams($params, true);
 
     }
