@@ -7,7 +7,7 @@ namespace SamIT\Yii2\UrlSigner\Tests;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use SamIT\Yii2\UrlSigner\HmacFilter;
-use SamIT\Yii2\UrlSigner\UrlSigner;
+use SamIT\Yii2\UrlSigner\UrlSignerComponent;
 use yii\base\Action;
 use yii\base\Controller;
 use yii\base\InvalidConfigException;
@@ -19,6 +19,9 @@ use yii\web\Response;
 #[CoversClass(HmacFilter::class)]
 final class HmacFilterTest extends TestCase
 {
+    /**
+     * @return Action<Controller>
+     */
     private function getAction(): Action
     {
         $module = new Module('test');
@@ -41,7 +44,7 @@ final class HmacFilterTest extends TestCase
     public function testValidConfig(): void
     {
         $filter = new HmacFilter([
-            'signer' => new UrlSigner(['secret' => 'test123'])
+            'signer' => new UrlSignerComponent(['secret' => 'test123'])
         ]);
         $this->assertInstanceOf(HmacFilter::class, $filter);
     }
@@ -49,7 +52,7 @@ final class HmacFilterTest extends TestCase
     public function testVerifyFalse(): void
     {
         $filter = new HmacFilter([
-            'signer' => new UrlSigner(['secret' => 'test123'])
+            'signer' => new UrlSignerComponent(['secret' => 'test123'])
         ]);
 
         $this->expectException(ForbiddenHttpException::class);
@@ -58,7 +61,7 @@ final class HmacFilterTest extends TestCase
 
     public function testVerifyTrue(): void
     {
-        $signer = new class() extends UrlSigner {
+        $signer = new class() extends UrlSignerComponent {
             public function init(): void
             {
 
@@ -75,5 +78,20 @@ final class HmacFilterTest extends TestCase
         ]);
 
         $this->assertTrue($filter->beforeAction($this->getAction()));
+    }
+
+    public function testInvalidRequest(): void
+    {
+
+        $filter = new HmacFilter();
+
+        $controller = new class('id', new Module('test')) extends Controller {
+            public function init(): void
+            {
+                $this->request = 'test123';
+            }
+        };
+        $this->expectException(InvalidConfigException::class);
+        $filter->beforeAction(new Action('test', $controller));
     }
 }

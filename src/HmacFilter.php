@@ -11,21 +11,34 @@ use yii\web\Request;
 /**
  * Filter that checks for a valid HMAC in the URL.
  */
-class HmacFilter extends ActionFilter
+final class HmacFilter extends ActionFilter
 {
-    public null|UrlSigner $signer = null;
+    private bool $locked = false;
+
+    public UrlSignerComponent|UrlSigner $signer {
+        set {
+            if ($this->locked) {
+                throw new \RuntimeException('Cannot change params after the component has been initialized');
+            }
+            $this->signer = $value;
+        }
+
+        get {
+            if (! isset($this->signer)) {
+                throw new InvalidConfigException('Signer must be set');
+            }
+            return $this->signer;
+        }
+
+    }
 
     /**
-     * @param \yii\base\Action $action
+     * @template T of \yii\base\Controller
+     * @param \yii\base\Action<T> $action
      * @throws \Exception
      */
     public function beforeAction($action): bool
     {
-        $signer = $this->signer;
-        if (! isset($signer)) {
-            throw new InvalidConfigException('Signer is required');
-        }
-
         /**
          * We obtain the request this way because we do not want to store a reference to any objects with state.
          */
@@ -33,7 +46,7 @@ class HmacFilter extends ActionFilter
         if (! $request instanceof Request) {
             throw new InvalidConfigException('Invalid request object');
         }
-        $signer->verify($request->queryParams, $action->controller->route);
+        $this->signer->verify($request->queryParams, $action->controller->route);
         return true;
     }
 }

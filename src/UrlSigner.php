@@ -5,68 +5,37 @@ declare(strict_types=1);
 namespace SamIT\Yii2\UrlSigner;
 
 use DateInterval;
-use yii\base\Component;
-use yii\base\InvalidConfigException;
+use Psr\Clock\ClockInterface;
+use SamIT\Yii2\UrlSigner\exceptions\UrlSignException;
+use SamIT\Yii2\UrlSigner\exceptions\UrlVerificationException;
+use SensitiveParameter;
 
-class UrlSigner extends Component
+final readonly class UrlSigner
 {
     /**
-     * @var string The name of the URL param for the HMAC
-     */
-    public string $hmacParam = 'hmac';
-
-    /**
-     * @var string The name of the URL param for the parameters
-     */
-    public string $paramsParam = 'params';
-
-    /**
-     * @var null|string The name of the URL param for the expiration date time
-     */
-    public null|string $expirationParam = 'expires';
-
-    /**
+     * @param string $hmacParam The name of the URL param for the HMAC
+     * @param string $paramsParam name of the URL param for the parameters
+     * @param string $expirationParam The name of the URL param for the expiration date time
      * Note that expiration dates cannot be disabled. If you really need to you can set a longer duration for the links.
-     * @var \DateInterval The default interval for link validity (default: 1 week)
-     */
-    private DateInterval $_defaultExpirationInterval;
-
-    /**
+     * @param \DateInterval $defaultExpirationInterval The default interval for link validity (default: 1 week)
      * Stores the current timestamp, primarily used for testing.
      */
-    private null|int $_currentTimestamp;
+    public function __construct(
+        private ClockInterface $clock,
+        #[SensitiveParameter]
+        private string $secret,
+        private string $hmacParam = 'hmac',
+        private string $paramsParam = 'params',
+        private string $expirationParam = 'expires',
+        private DateInterval $defaultExpirationInterval = new \DateInterval('P7D'),
+    ) {
 
-    public string $secret;
-
-    public function init(): void
-    {
-        parent::init();
-        if (! isset($this->_defaultExpirationInterval)) {
-            $this->setDefaultExpirationInterval('P7D');
-        }
-        if (empty($this->secret)
-            || empty($this->hmacParam)
-            || empty($this->paramsParam)
-            || empty($this->expirationParam)
-        ) {
-            throw new InvalidConfigException('The following configuration params are required: secret, hmacParam, paramsParam and expirationParam');
-        }
-
-    }
-
-    public function setDefaultExpirationInterval(string $interval): void
-    {
-        $this->_defaultExpirationInterval = new \DateInterval($interval);
-    }
-
-    public function setCurrentTimestamp(?int $time): void
-    {
-        $this->_currentTimestamp = $time;
     }
 
     /**
      * Calculates the HMAC for a URL.
      * @param array<mixed> $params
+     * @deprecated
      **/
     public function calculateHMAC(
         array $params,
@@ -89,73 +58,33 @@ class UrlSigner extends Component
     }
 
     /**
+     * @param non-empty-string $route
      * @param array<string, mixed> $params
      * @return array<string|0, mixed>
      */
     public function sign(string $route, array $params, bool $allowAddition = true, null|\DateTimeInterface $expiration = null): array
     {
         if (isset($params[$this->hmacParam])) {
-            throw new \RuntimeException(\Yii::t('sam-it.urlsigner', "HMAC param is already present"));
+            throw UrlSignException::AlreadyPresent();
         }
 
         if (\strncmp($route, '/', 1) !== 0) {
-            throw new \RuntimeException(\Yii::t('sam-it.urlsigner', "Route must be absolute (start with /)"));
+            throw UrlSignException::RelativeRoute();
         }
 
         $result = [
             $route,
             ...$params,
-            ...$this->addExpiration($expiration)
         ];
-        if (isset($this->expirationParam)) {
-            $expiration ??= (new \DateTime('@' . $this->time()))->add($this->_defaultExpirationInterval);
-            $result[$this->expirationParam] = $expiration->getTimestamp();
-        }
+
+        $expiration ??= $this->clock->now()->add($this->defaultExpirationInterval);
+        $result[$this->expirationParam] = $expiration->getTimestamp();
+
         if ($allowAddition) {
             $result[$this->paramsParam] = $this->addParamKeys($result);
         };
         $result[$this->hmacParam] = $this->calculateHMAC($result, $route);
         return $result;
-    }
-
-    /**
-     * This adds an HMAC to a list of query params.
-     * @param array<0|string, mixed> $queryParams List of query parameters
-     * @param-out array<0|string, mixed> $queryParams
-     * @param bool $allowAddition Whether to allow extra parameters to be added.
-     * @throws \Exception
-     * @deprecated Use ->sign instead
-     */
-    public function signParams(
-        array &$queryParams,
-        bool $allowAddition = true,
-        ?\DateTimeInterface $expiration = null
-    ): void {
-        $route = $queryParams[0];
-        if (! is_string($route)) {
-            throw new \InvalidArgumentException(\Yii::t('sam-it.urlsigner', "Route must be a string"));
-        }
-        unset($queryParams[0]);
-        $newParams = $this->sign($route, $queryParams, $allowAddition, $expiration);
-        $queryParams = $newParams;
-    }
-
-    /**
-     * Adds the expiration param if needed.
-     * @return array<string, int>
-     */
-    private function addExpiration(?\DateTimeInterface $expiration = null): array
-    {
-        if (! empty($this->expirationParam)) {
-            $expiration ??= (new \DateTime('@' . $this->time()))->add($this->_defaultExpirationInterval);
-            return [$this->expirationParam => $expiration->getTimestamp()];
-        }
-        return [];
-    }
-
-    private function time(): int
-    {
-        return $this->_currentTimestamp ?? \time();
     }
 
     /**
@@ -165,9 +94,9 @@ class UrlSigner extends Component
     {
         // Check expiration date.
         if (isset($params[$this->expirationParam])
-            && $params[$this->expirationParam] <= $this->time()
+            && $params[$this->expirationParam] <= $this->clock->now()->getTimestamp()
         ) {
-            throw new ExpiredLinkException();
+            throw UrlVerificationException::ExpiredLink();
         }
     }
 
@@ -218,7 +147,7 @@ class UrlSigner extends Component
     public function verify(array $params, string $route): void
     {
         if (! isset($params[$this->hmacParam]) || ! is_string($params[$this->hmacParam])) {
-            throw new MissingHmacException();
+            throw UrlVerificationException::MissingHMAC();
         }
         $hmac = $params[$this->hmacParam];
 
@@ -226,7 +155,7 @@ class UrlSigner extends Component
 
         $calculated = $this->calculateHMAC($signedParams, $route);
         if (! \hash_equals($calculated, $hmac)) {
-            throw new InvalidHmacException();
+            throw UrlVerificationException::InvalidHMAC();
         }
 
         $this->checkExpiration($params);

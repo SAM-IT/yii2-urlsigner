@@ -20,6 +20,14 @@ This package solves the problem by signing the URL.
 
 This allows us to verify that the URL was actually created by us therefore can be trusted.
 
+# Upgrade to V4
+The Yii2 component and the actual signer have been split into two separate classes.
+In my opinion, you should use the `UrlSigner` class directly, configuring it using a closure in your DI config.
+If you need to use the component with array configuration, you may use the `UrlSignerComponent` class.
+
+Deprecated function `signParams` has been removed, use `sign` instead.
+`UrlSigner::calculateHMAC()` has been deprecated.
+
 # Example
 
 ```php
@@ -34,9 +42,9 @@ class RequestResetAction {
         $user = User::find()->andWhere([
             'id' => $id,
             'email' => $email
-        ]);
+        ])->one();
 
-        $route = [
+        $params = [
             '/user/do-reset',
             'id' => $user->id,
             'crc' => crc32($user->password_hash),
@@ -44,13 +52,10 @@ class RequestResetAction {
 
         /**
          * Sign the params.
-         * 1st param is passed by reference, the component adds the params needed for HMAC.
-         * 2nd param indicates that the params must match exactly, the user cannot add another param.
-         * 3rd param sets the expiration to 1 hour
          **/
-        $urlSigner->signParams($route, false, (new DateTime())->add(new DateInterval('PT1H')));
+        $signed = $urlSigner->sign('/user/do-reset', $params, false, (new DateTime())->add(new DateInterval('PT1H')));
 
-        $user->sendPasswordReset($route);
+        $user->sendPasswordReset($signed);
 
 
 

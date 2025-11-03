@@ -4,210 +4,153 @@ declare(strict_types=1);
 
 namespace SamIT\Yii2\UrlSigner\Tests;
 
+use DateInterval;
+use Lcobucci\Clock\FrozenClock;
+use Lcobucci\Clock\SystemClock;
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DoesNotPerformAssertions;
 use PHPUnit\Framework\TestCase;
-use RuntimeException;
-use SamIT\Yii2\UrlSigner\InvalidHmacException;
-use SamIT\Yii2\UrlSigner\MissingHmacException;
+use SamIT\Yii2\UrlSigner\exceptions\UrlVerificationException;
 use SamIT\Yii2\UrlSigner\UrlSigner;
-use yii\base\InvalidConfigException;
 
 #[CoversClass(UrlSigner::class)]
 class UrlSignerTest extends TestCase
 {
-    public function testInvalidConfig(): void
-    {
-        $this->expectException(InvalidConfigException::class);
-        $signer = new UrlSigner();
-
-    }
-
     public function testSimple(): void
     {
-        $signer = new UrlSigner([
-            'secret' => 'test123'
-        ]);
+        $hmacParam = 'testHmac';
+        $expirationParam = 'testExpiration';
+        $paramsParam = 'testParams';
 
-        $route = '/url';
-        $params = [
-            $route,
-            'test' => 'abc'
-        ];
-        $signer->signParams($params, false);
+        $signer = new UrlSigner(
+            clock: SystemClock::fromUTC(),
+            secret: 'test123',
+            hmacParam: $hmacParam,
+            paramsParam: $paramsParam,
+            expirationParam: $expirationParam,
+        );
 
-        $this->assertArrayHasKey($signer->hmacParam, $params);
-        $this->assertArrayHasKey($signer->expirationParam, $params);
-        $this->assertArrayNotHasKey($signer->paramsParam, $params);
+        $signed = $signer->sign('/url', ['test' => 'abc'], false);
 
-        unset($params[0]);
-        $signer->verify($params, $route);
+        $this->assertArrayHasKey($hmacParam, $signed);
+        $this->assertArrayHasKey($expirationParam, $signed);
+        $this->assertArrayNotHasKey($paramsParam, $signed);
+
+        $signer->verify($signed, '/url');
     }
 
+    #[DoesNotPerformAssertions]
     public function testAdditions(): void
     {
-        $signer = new UrlSigner([
-            'secret' => 'test123'
-        ]);
+        $signer = new UrlSigner(
+            clock: SystemClock::fromUTC(),
+            secret: 'test123',
+        );
 
         $route = '/url';
-        $params = [
-            $route,
-            'test' => 'abc'
-        ];
-        $signer->signParams($params, true);
+        $signed = $signer->sign('/url', ['test' => 'abc'], true);
 
-        $this->assertArrayHasKey($signer->hmacParam, $params);
-        $this->assertArrayHasKey($signer->expirationParam, $params);
-        $this->assertArrayHasKey($signer->paramsParam, $params);
-        unset($params[0]);
-        $signer->verify($params, $route);
-        $params['extra'] = 'cool';
-        $signer->verify($params, $route);
+        $signer->verify($signed, $route);
+        $signed['extra'] = 'cool';
+        $signer->verify($signed, $route);
     }
 
     public function testDoubleSign(): void
     {
-        $signer = new UrlSigner([
-            'secret' => 'test123'
-        ]);
+        $signer = new UrlSigner(
+            clock: SystemClock::fromUTC(),
+            secret: 'test123',
+        );
 
-        $params = [
-            '/url',
-            'test' => 'abc'
-        ];
-        $signer->signParams($params, true);
-        $this->expectException(\RuntimeException::class);
-        $signer->signParams($params, true);
+        $signer->sign('/url', ['test' => 'abc']);
+        $this->expectException(\InvalidArgumentException::class);
+        $signer->sign('/url', ['test' => 'abc', 'hmac' => 'abc']);
 
     }
 
     public function testMissingHmac(): void
     {
-        $signer = new UrlSigner([
-            'secret' => 'test123'
-        ]);
+        $signer = new UrlSigner(
+            clock: SystemClock::fromUTC(),
+            secret: 'test123',
+        );
         $route = '/url';
-        $params = [
-            $route,
-            'test' => 'abc'
-        ];
-        $signer->signParams($params, false);
+        $signed = $signer->sign('/url', ['test' => 'abc'], false);
 
-        $this->assertArrayHasKey($signer->hmacParam, $params);
-        $this->assertArrayHasKey($signer->expirationParam, $params);
-        $this->assertArrayNotHasKey($signer->paramsParam, $params);
-        unset($params[0]);
-        $signer->verify($params, $route);
-        unset($params[$signer->hmacParam]);
-        $this->expectException(MissingHmacException::class);
-        $signer->verify($params, $route);
+        $signer->verify($signed, $route);
+        unset($signed['hmac']);
+        $this->expectException(UrlVerificationException::class);
+        $signer->verify($signed, $route);
     }
 
     public function testModification(): void
     {
-        $signer = new UrlSigner([
-            'secret' => 'test123'
-        ]);
-        $route = '/url';
-        $params = [
-            $route,
-            'test' => 'abc'
-        ];
-        $signer->signParams($params, false);
+        $signer = new UrlSigner(
+            clock: SystemClock::fromUTC(),
+            secret: 'test123',
+        );
+        $signed = $signer->sign('/url', ['test' => 'abc'], false);
 
-        $this->assertArrayHasKey($signer->hmacParam, $params);
-        $this->assertArrayHasKey($signer->expirationParam, $params);
-        $this->assertArrayNotHasKey($signer->paramsParam, $params);
-        unset($params[0]);
-
-        $params['test'] = 'abd';
-        $this->expectException(InvalidHmacException::class);
-        $signer->verify($params, $route);
+        $signed['test'] = 'abd';
+        $this->expectException(UrlVerificationException::class);
+        $signer->verify($signed, '/url');
     }
 
     public function testRelativeRoute(): void
     {
-        $signer = new UrlSigner([
-            'secret' => 'test123'
-        ]);
+        $signer = new UrlSigner(
+            clock: SystemClock::fromUTC(),
+            secret: 'test123',
+        );
 
-        $params = [
-            'controller/action',
-            'test' => 'abc'
-        ];
-        $this->expectException(RuntimeException::class);
-        $signer->signParams($params);
+        $this->expectException(\InvalidArgumentException::class);
+        $signer->sign('controller/action', []);
     }
 
     public function testMissingExpiration(): void
     {
-        $signer = new UrlSigner([
-            'secret' => 'test123'
-        ]);
+        $signer = new UrlSigner(
+            clock: SystemClock::fromUTC(),
+            secret: 'test123',
+        );
 
-        $params = [
-            '/controller/action',
-            'test' => 'abc'
-        ];
-        $signer->signParams($params);
+        $params = ['test' => 'abc'];
+        $signed = $signer->sign('/controller/action', $params);
 
-        unset($params[$signer->expirationParam]);
-        $this->expectException(InvalidHmacException::class);
-        $signer->verify($params, '/controller/action');
-    }
-
-    public function testNoExpiration(): void
-    {
-        $signer = new UrlSigner([
-            'secret' => 'test123'
-        ]);
-        $expirationParam = $signer->expirationParam;
-        $signer->expirationParam = null;
-
-        $params = [
-            '/controller/action',
-            'test' => 'abc'
-        ];
-        $signer->signParams($params);
-        $this->assertNotContains($expirationParam, $params);
-
-        $signer->verify($params, '/controller/action');
-        $signer->expirationParam = $expirationParam;
+        unset($signed['expires']);
+        $this->expectException(UrlVerificationException::class);
         $signer->verify($params, '/controller/action');
     }
 
     public function testDefaultExpiration(): void
     {
-        $signer = new UrlSigner([
-            'secret' => 'test123',
-            'defaultExpirationInterval' => 'P14D'
-        ]);
-        $params = [
-            '/controller/action'
-        ];
-        $signer->signParams($params);
-        $this->assertContains('expires', $params);
-        $this->assertGreaterThan(\time() + 14 * 24 * 3600 - 100, $params['expires']);
+        $signer = new UrlSigner(
+            clock: SystemClock::fromUTC(),
+            secret: 'test123',
+            defaultExpirationInterval: new DateInterval('P14D')
+        );
+        $signed = $signer->sign('/controller/action', [], false);
+        $this->assertArrayHasKey('expires', $signed);
+        $this->assertGreaterThan(\time() + 14 * 24 * 3600 - 100, $signed['expires']);
     }
 
     public function testTimeMocking(): void
     {
-        $signer = new UrlSigner([
-            'secret' => 'test123',
-            'defaultExpirationInterval' => 'PT01S'
-        ]);
-        $params = [
-            '/controller/action'
-        ];
-        $signer->signParams($params);
-        $this->assertContains('expires', $params);
-        $this->assertSame(\time() + 1, $params['expires']);
-        $signer->setCurrentTimestamp(\time() - 10);
-        $signer->verify($params, '/controller/action');
-        $signer->setCurrentTimestamp(null);
-        $signer->verify($params, '/controller/action');
-        $signer->setCurrentTimestamp(\time() + 5);
-        $this->expectException(\SamIT\Yii2\UrlSigner\ExpiredLinkException::class);
-        $signer->verify($params, '/controller/action');
+        $clock = FrozenClock::fromUTC();
+        $signer = new UrlSigner(
+            clock: $clock,
+            secret: 'test123',
+            defaultExpirationInterval: new DateInterval('PT01S')
+        );
+        $signed = $signer->sign('/controller/action', []);
+        $this->assertContains('expires', $signed);
+        $this->assertSame($clock->now()->getTimestamp() + 1, $signed['expires']);
+        $clock->adjustTime('-10 seconds');
+        $signer->verify($signed, '/controller/action');
+        $clock->adjustTime('+10 seconds');
+        $signer->verify($signed, '/controller/action');
+        $clock->adjustTime('+10 seconds');
+        $this->expectException(UrlVerificationException::class);
+        $signer->verify($signed, '/controller/action');
     }
 }

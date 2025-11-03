@@ -10,8 +10,10 @@
         }
     ],
     "require": {
-        "php": ">= 8.3",
-        "yiisoft/yii2": "^2.0.13"
+        "php": ">= 8.4",
+        "yiisoft/yii2": "^2",
+        "psr/clock": "^1.0",
+        "psr/clock-implementation": "*"
     },
     "autoload": {
         "psr-4": {
@@ -32,7 +34,11 @@
     "require-dev": {
         "phpstan/phpstan": "^2.1",
         "symplify/easy-coding-standard": "^12.5",
-        "phpunit/phpunit": "^12.2"
+        "phpunit/phpunit": "^12.2",
+        "lcobucci/clock": "^3.5"
+    },
+    "suggest": {
+      "lcobucci/clock": "^3.5"
     },
     "scripts": {
         "test": "vendor/bin/phpunit",
