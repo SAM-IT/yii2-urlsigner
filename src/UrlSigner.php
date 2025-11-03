@@ -7,7 +7,6 @@ namespace SamIT\Yii2\UrlSigner;
 use DateInterval;
 use yii\base\Component;
 use yii\base\InvalidConfigException;
-use yii\helpers\StringHelper;
 
 class UrlSigner extends Component
 {
@@ -235,6 +234,6 @@ class UrlSigner extends Component
 
     private function urlEncode(string $bytes): string
     {
-        return \trim(StringHelper::base64UrlEncode($bytes), '=');
+        return strtr(base64_encode($bytes), '+/', '-_');
     }
 }
