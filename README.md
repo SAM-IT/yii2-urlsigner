@@ -45,7 +45,6 @@ class RequestResetAction {
         ])->one();
 
         $params = [
-            '/user/do-reset',
             'id' => $user->id,
             'crc' => crc32($user->password_hash),
         ];
