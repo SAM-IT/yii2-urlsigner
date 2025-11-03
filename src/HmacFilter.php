@@ -33,7 +33,8 @@ final class HmacFilter extends ActionFilter
     }
 
     /**
-     * @param \yii\base\Action $action
+     * @template T of \yii\base\Controller
+     * @param \yii\base\Action<T> $action
      * @throws \Exception
      */
     public function beforeAction($action): bool

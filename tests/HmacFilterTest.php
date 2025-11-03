@@ -19,6 +19,9 @@ use yii\web\Response;
 #[CoversClass(HmacFilter::class)]
 final class HmacFilterTest extends TestCase
 {
+    /**
+     * @return Action<Controller>
+     */
     private function getAction(): Action
     {
         $module = new Module('test');
