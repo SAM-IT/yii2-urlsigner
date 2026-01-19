@@ -6,7 +6,6 @@ namespace SamIT\Yii2\UrlSigner\Tests;
 
 use Lcobucci\Clock\FrozenClock;
 use PHPUnit\Framework\Attributes\CoversClass;
-use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\DoesNotPerformAssertions;
 use PHPUnit\Framework\TestCase;
 use SamIT\Yii2\UrlSigner\UrlSigner;
@@ -23,29 +22,10 @@ class UrlSignerComponentTest extends TestCase
         $signer = new UrlSignerComponent();
     }
 
-    /**
-     * @return iterable<array{0: array{secret: string, hmacParam: string, paramsParam: string, expirationParam: string}}>
-     */
-    public static function configurationProvider(): iterable
-    {
-        $config = ['secret' => 'test123'];
-        foreach (array_keys($config) as $value) {
-            yield [[
-                ...$config,
-                $value => ''
-            ]];
-        }
-
-    }
-
-    /**
-     * @param array{secret: string, hmacParam: string, paramsParam: string, expirationParam: string} $config
-     */
-    #[DataProvider('configurationProvider')]
-    public function testInvalidConfigEmptyParameter(array $config): void
+    public function testInvalidConfigEmptyParameter(): void
     {
         $this->expectException(InvalidConfigException::class);
-        $signer = new UrlSignerComponent($config);
+        new UrlSignerComponent([]);
     }
 
     public function testSimple(): void
