@@ -4,12 +4,16 @@ declare(strict_types=1);
 
 namespace SamIT\Yii2\UrlSigner;
 
+use SamIT\Yii2\UrlSigner\exceptions\UrlVerificationException;
 use yii\base\ActionFilter;
+use yii\base\Controller;
 use yii\base\InvalidConfigException;
+use yii\web\ForbiddenHttpException;
 use yii\web\Request;
 
 /**
  * Filter that checks for a valid HMAC in the URL.
+ * @extends ActionFilter<Controller>
  */
 final class HmacFilter extends ActionFilter
 {
@@ -46,7 +50,11 @@ final class HmacFilter extends ActionFilter
         if (! $request instanceof Request) {
             throw new InvalidConfigException('Invalid request object');
         }
-        $this->signer->verify($request->queryParams, $action->controller->route);
+        try {
+            $this->signer->verify($request->queryParams, $action->controller->route);
+        } catch (UrlVerificationException $e) {
+            throw new ForbiddenHttpException($e->getMessage(), $e->getCode(), $e);
+        }
         return true;
     }
 }

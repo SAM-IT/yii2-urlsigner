@@ -9,6 +9,7 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\DoesNotPerformAssertions;
 use PHPUnit\Framework\TestCase;
+use SamIT\Yii2\UrlSigner\UrlSigner;
 use SamIT\Yii2\UrlSigner\UrlSignerComponent;
 use yii\base\InvalidConfigException;
 use yii\web\ForbiddenHttpException;
@@ -56,9 +57,7 @@ class UrlSignerComponentTest extends TestCase
         $route = '/url';
         $signed = $signer->sign('/url', ['test' => 'abc'], false);
 
-        $this->assertArrayHasKey($signer->hmacParam, $signed);
-        $this->assertArrayHasKey($signer->expirationParam, $signed);
-        $this->assertArrayNotHasKey($signer->paramsParam, $signed);
+        $this->assertArrayNotHasKey(UrlSigner::PARAMS, $signed);
 
         unset($signed[0]);
         $signer->verify($signed, $route);

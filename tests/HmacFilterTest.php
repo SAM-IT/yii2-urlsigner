@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SamIT\Yii2\UrlSigner\Tests;
 
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DoesNotPerformAssertions;
 use PHPUnit\Framework\TestCase;
 use SamIT\Yii2\UrlSigner\HmacFilter;
 use SamIT\Yii2\UrlSigner\UrlSignerComponent;
@@ -20,7 +21,7 @@ use yii\web\Response;
 final class HmacFilterTest extends TestCase
 {
     /**
-     * @return Action<Controller>
+     * @return Action<Controller<Module>>
      */
     private function getAction(): Action
     {
@@ -41,12 +42,12 @@ final class HmacFilterTest extends TestCase
         $filter->beforeAction($this->getAction());
     }
 
+    #[DoesNotPerformAssertions]
     public function testValidConfig(): void
     {
-        $filter = new HmacFilter([
+        new HmacFilter([
             'signer' => new UrlSignerComponent(['secret' => 'test123'])
         ]);
-        $this->assertInstanceOf(HmacFilter::class, $filter);
     }
 
     public function testVerifyFalse(): void
