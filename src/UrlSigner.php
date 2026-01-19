@@ -92,8 +92,8 @@ final readonly class UrlSigner
     private function checkExpiration(array $params): void
     {
         // Check expiration date.
-        if (isset($params[self::PARAMS])
-            && $params[self::PARAMS] <= $this->clock->now()->getTimestamp()
+        if (isset($params[self::EXPIRES])
+            && $params[self::EXPIRES] <= $this->clock->now()->getTimestamp()
         ) {
             throw UrlVerificationException::ExpiredLink();
         }
@@ -105,10 +105,10 @@ final readonly class UrlSigner
      */
     private function addParamKeys(array $params): string
     {
-        $keys = \array_keys($params);
-        if ($keys[0] === 0) {
-            unset($keys[0]);
+        if (isset($params[0])) {
+            unset($params[0]);
         }
+        $keys = \array_keys($params);
         return \implode(',', $keys);
     }
 

@@ -16,6 +16,7 @@ use SamIT\Yii2\UrlSigner\UrlSigner;
 #[CoversClass(UrlSigner::class)]
 class UrlSignerTest extends TestCase
 {
+    #[DoesNotPerformAssertions]
     public function testSimple(): void
     {
         $signer = new UrlSigner(

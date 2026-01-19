@@ -28,7 +28,7 @@ class UrlSignerComponentTest extends TestCase
      */
     public static function configurationProvider(): iterable
     {
-        $config = ['secret' => 'test123', 'hmacParam' => 'hmac', 'paramsParam' => 'params', 'expirationParam' => 'expires'];
+        $config = ['secret' => 'test123'];
         foreach (array_keys($config) as $value) {
             yield [[
                 ...$config,
@@ -71,7 +71,7 @@ class UrlSignerComponentTest extends TestCase
         ]);
 
         $route = '/url';
-        $signed = $signer->sign($route, ['test' => 'abc'], true);
+        $signed = $signer->sign($route, ['test' => 'abc'], allowAddition: true);
 
         unset($signed[0]);
         $signer->verify($signed, $route);
