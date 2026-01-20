@@ -61,7 +61,7 @@ final readonly class UrlSigner
      * @param array<string, mixed> $params
      * @return array{0: non-empty-string, self::EXPIRES: int, self::PARAMS?: string, self::HMAC: string}
      */
-    public function sign(string $route, array $params, bool $allowAddition = true, null|\DateTimeInterface $expiration = null): array
+    public function sign(string $route, array $params, bool $allowAddition = true, null|\DateTimeInterface|DateInterval $expiration = null): array
     {
         if (isset($params[self::HMAC])) {
             throw UrlSignException::AlreadyPresent();
@@ -77,7 +77,10 @@ final readonly class UrlSigner
         $result = $params;
         $result[0] = $route;
 
-        $expiration ??= $this->clock->now()->add($this->defaultExpirationInterval);
+        if (! $expiration instanceof \DateTimeInterface) {
+            $expiration = $this->clock->now()->add($expiration ?? $this->defaultExpirationInterval);
+        }
+
         $result[self::EXPIRES] = $expiration->getTimestamp();
         if ($allowAddition) {
             $result[self::PARAMS] = $this->addParamKeys($result);
