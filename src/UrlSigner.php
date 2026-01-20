@@ -12,10 +12,13 @@ use SensitiveParameter;
 
 final readonly class UrlSigner
 {
+    public const string  EXPIRES = 'expires';
+
+    public const string  PARAMS = 'params';
+
+    public const string HMAC = 'hmac';
+
     /**
-     * @param string $hmacParam The name of the URL param for the HMAC
-     * @param string $paramsParam name of the URL param for the parameters
-     * @param string $expirationParam The name of the URL param for the expiration date time
      * Note that expiration dates cannot be disabled. If you really need to you can set a longer duration for the links.
      * @param \DateInterval $defaultExpirationInterval The default interval for link validity (default: 1 week)
      * Stores the current timestamp, primarily used for testing.
@@ -24,9 +27,6 @@ final readonly class UrlSigner
         private ClockInterface $clock,
         #[SensitiveParameter]
         private string $secret,
-        private string $hmacParam = 'hmac',
-        private string $paramsParam = 'params',
-        private string $expirationParam = 'expires',
         private DateInterval $defaultExpirationInterval = new \DateInterval('P7D'),
     ) {
 
@@ -35,9 +35,8 @@ final readonly class UrlSigner
     /**
      * Calculates the HMAC for a URL.
      * @param array<mixed> $params
-     * @deprecated
      **/
-    public function calculateHMAC(
+    private function calculateHMAC(
         array $params,
         string $route
     ): string {
@@ -60,11 +59,11 @@ final readonly class UrlSigner
     /**
      * @param non-empty-string $route
      * @param array<string, mixed> $params
-     * @return array<string|0, mixed>
+     * @return array{0: non-empty-string, self::EXPIRES: int, self::PARAMS?: string, self::HMAC: string}
      */
     public function sign(string $route, array $params, bool $allowAddition = true, null|\DateTimeInterface $expiration = null): array
     {
-        if (isset($params[$this->hmacParam])) {
+        if (isset($params[self::HMAC])) {
             throw UrlSignException::AlreadyPresent();
         }
 
@@ -72,18 +71,18 @@ final readonly class UrlSigner
             throw UrlSignException::RelativeRoute();
         }
 
-        $result = [
-            $route,
-            ...$params,
-        ];
+        /**
+         * @var array{0: string}
+         */
+        $result = $params;
+        $result[0] = $route;
 
         $expiration ??= $this->clock->now()->add($this->defaultExpirationInterval);
-        $result[$this->expirationParam] = $expiration->getTimestamp();
-
+        $result[self::EXPIRES] = $expiration->getTimestamp();
         if ($allowAddition) {
-            $result[$this->paramsParam] = $this->addParamKeys($result);
+            $result[self::PARAMS] = $this->addParamKeys($result);
         };
-        $result[$this->hmacParam] = $this->calculateHMAC($result, $route);
+        $result[self::HMAC] = $this->calculateHMAC($result, $route);
         return $result;
     }
 
@@ -93,8 +92,8 @@ final readonly class UrlSigner
     private function checkExpiration(array $params): void
     {
         // Check expiration date.
-        if (isset($params[$this->expirationParam])
-            && $params[$this->expirationParam] <= $this->clock->now()->getTimestamp()
+        if (isset($params[self::EXPIRES])
+            && $params[self::EXPIRES] <= $this->clock->now()->getTimestamp()
         ) {
             throw UrlVerificationException::ExpiredLink();
         }
@@ -106,30 +105,30 @@ final readonly class UrlSigner
      */
     private function addParamKeys(array $params): string
     {
-        $keys = \array_keys($params);
-        if ($keys[0] === 0) {
-            unset($keys[0]);
+        if (isset($params[0])) {
+            unset($params[0]);
         }
+        $keys = \array_keys($params);
         return \implode(',', $keys);
     }
 
     /**
      * Extracts the signed params from an array of params.
-     * @param array<string, mixed> $params
-     * @return array<string, mixed>
+     * @param array<mixed> $params
+     * @return array<mixed>
      */
     private function getSignedParams(array $params): array
     {
-        $paramNames = $params[$this->paramsParam] ?? null;
+        $paramNames = $params[self::PARAMS] ?? null;
 
         if (empty($paramNames) || ! is_string($paramNames)) {
             // HMAC itself is never signed.
-            unset($params[$this->hmacParam]);
+            unset($params[self::HMAC]);
             return $params;
         }
 
         $signedParams = [];
-        $signedParams[$this->paramsParam] = $paramNames;
+        $signedParams[self::PARAMS] = $paramNames;
 
         foreach (\explode(',', $paramNames) as $signedParam) {
             $signedParams[$signedParam] = $params[$signedParam] ?? null;
@@ -146,10 +145,10 @@ final readonly class UrlSigner
      */
     public function verify(array $params, string $route): void
     {
-        if (! isset($params[$this->hmacParam]) || ! is_string($params[$this->hmacParam])) {
+        if (! isset($params[self::HMAC]) || ! is_string($params[self::HMAC])) {
             throw UrlVerificationException::MissingHMAC();
         }
-        $hmac = $params[$this->hmacParam];
+        $hmac = $params[self::HMAC];
 
         $signedParams = $this->getSignedParams($params);
 

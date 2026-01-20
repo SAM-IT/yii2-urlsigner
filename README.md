@@ -20,13 +20,18 @@ This package solves the problem by signing the URL.
 
 This allows us to verify that the URL was actually created by us therefore can be trusted.
 
-# Upgrade to V4
+# Upgrade to v4
 The Yii2 component and the actual signer have been split into two separate classes.
 In my opinion, you should use the `UrlSigner` class directly, configuring it using a closure in your DI config.
 If you need to use the component with array configuration, you may use the `UrlSignerComponent` class.
 
 Deprecated function `signParams` has been removed, use `sign` instead.
 `UrlSigner::calculateHMAC()` has been deprecated.
+
+# Upgrade to v5
+In v5 for better static analysis we have removed configuration options.
+The names for query parameters are now fixed. If you previously customized them you cannot switch to v5 without breaking
+existing code.
 
 # Example
 

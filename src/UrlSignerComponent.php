@@ -18,45 +18,6 @@ use yii\web\ForbiddenHttpException;
 class UrlSignerComponent extends Component
 {
     /**
-     * @var string The name of the URL param for the HMAC
-     */
-    public string $hmacParam = 'hmac' {
-        set {
-            if ($this->locked) {
-                throw new \RuntimeException('Cannot change params after the component has been initialized');
-            }
-            $this->hmacParam = $value;
-        }
-        get => $this->hmacParam;
-    }
-
-    /**
-     * @var string The name of the URL param for the parameters
-     */
-    public string $paramsParam = 'params' {
-        set {
-            if ($this->locked) {
-                throw new \RuntimeException('Cannot change params after the component has been initialized');
-            }
-            $this->paramsParam = $value;
-        }
-        get => $this->paramsParam;
-    }
-
-    /**
-     * @var string The name of the URL param for the expiration date time
-     */
-    public string $expirationParam = 'expires' {
-        set {
-            if ($this->locked) {
-                throw new \RuntimeException('Cannot change params after the component has been initialized');
-            }
-            $this->expirationParam = $value;
-        }
-        get => $this->expirationParam;
-    }
-
-    /**
      * Note that expiration dates cannot be disabled. If you really need to you can set a longer duration for the links.
      * @var \DateInterval The default interval for link validity (default: 1 week)
      */
@@ -110,20 +71,13 @@ class UrlSignerComponent extends Component
     public function init(): void
     {
         parent::init();
-        if (empty($this->secret)
-            || empty($this->hmacParam)
-            || empty($this->paramsParam)
-            || empty($this->expirationParam)
-        ) {
+        if (empty($this->secret)) {
             throw new InvalidConfigException('The following configuration params are required: secret, hmacParam, paramsParam and expirationParam');
         }
 
         $this->signer = new UrlSigner(
             $this->clock,
             $this->secret,
-            $this->hmacParam,
-            $this->paramsParam,
-            $this->expirationParam,
             $this->defaultExpirationInterval
         );
         $this->locked = true;
@@ -132,8 +86,8 @@ class UrlSignerComponent extends Component
     /**
      * @param non-empty-string $route
      * @param array<string, mixed> $params
-     * @return array<string|0, mixed>
-     */
+     * @return array{0: non-empty-string, UrlSigner::EXPIRES: int, UrlSigner::PARAMS?: string, UrlSigner::HMAC: string}
+ */
     public function sign(string $route, array $params, bool $allowAddition = true, null|\DateTimeInterface $expiration = null): array
     {
         try {

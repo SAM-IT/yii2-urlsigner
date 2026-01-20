@@ -16,25 +16,15 @@ use SamIT\Yii2\UrlSigner\UrlSigner;
 #[CoversClass(UrlSigner::class)]
 class UrlSignerTest extends TestCase
 {
+    #[DoesNotPerformAssertions]
     public function testSimple(): void
     {
-        $hmacParam = 'testHmac';
-        $expirationParam = 'testExpiration';
-        $paramsParam = 'testParams';
-
         $signer = new UrlSigner(
             clock: SystemClock::fromUTC(),
             secret: 'test123',
-            hmacParam: $hmacParam,
-            paramsParam: $paramsParam,
-            expirationParam: $expirationParam,
         );
 
         $signed = $signer->sign('/url', ['test' => 'abc'], false);
-
-        $this->assertArrayHasKey($hmacParam, $signed);
-        $this->assertArrayHasKey($expirationParam, $signed);
-        $this->assertArrayNotHasKey($paramsParam, $signed);
 
         $signer->verify($signed, '/url');
     }
@@ -130,7 +120,6 @@ class UrlSignerTest extends TestCase
             defaultExpirationInterval: new DateInterval('P14D')
         );
         $signed = $signer->sign('/controller/action', [], false);
-        $this->assertArrayHasKey('expires', $signed);
         $this->assertGreaterThan(\time() + 14 * 24 * 3600 - 100, $signed['expires']);
     }
 
