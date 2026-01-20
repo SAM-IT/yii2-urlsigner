@@ -71,12 +71,10 @@ final readonly class UrlSigner
             throw UrlSignException::RelativeRoute();
         }
 
-        /**
-         * @var array{0: string}
-         */
         $result = $params;
-        $result[0] = $route;
 
+        array_unshift($result, $route);
+        /** @var array{0: non-empty-string} $result */
         if (! $expiration instanceof \DateTimeInterface) {
             $expiration = $this->clock->now()->add($expiration ?? $this->defaultExpirationInterval);
         }
