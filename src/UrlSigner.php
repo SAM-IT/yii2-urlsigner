@@ -163,6 +163,6 @@ final readonly class UrlSigner
 
     private function urlEncode(string $bytes): string
     {
-        return strtr(base64_encode($bytes), '+/', '-_');
+        return rtrim(strtr(base64_encode($bytes), '+/', '-_'), '=');
     }
 }
